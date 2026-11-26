@@ -1,5 +1,7 @@
 # ChannelLens
 
+[![CI](https://github.com/sheershh/ChannelLens/actions/workflows/ci.yml/badge.svg)](https://github.com/sheershh/ChannelLens/actions/workflows/ci.yml)
+
 Full-stack YouTube channel analytics. Look up any channel, compare up to four side by side,
 keep a watchlist, and track subscriber and view growth over time from daily snapshots.
 
