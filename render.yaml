@@ -1,5 +1,6 @@
-# Render Blueprint: FastAPI service + managed Postgres.
-# Dashboard -> New -> Blueprint -> pick this repo. You'll be asked for the two `sync: false` values.
+# Render Blueprint for the API (free instance, no card needed).
+# The database is Neon's free Postgres (no card, no expiry): paste its connection string as DATABASE_URL.
+# Dashboard -> New -> Blueprint -> pick this repo. You'll be asked for the `sync: false` values.
 services:
   - type: web
     name: channellens-api
@@ -10,11 +11,9 @@ services:
     healthCheckPath: /api/health
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: channellens-db
-          property: connectionString
+        sync: false # Neon connection string (postgresql://...?sslmode=require)
       - key: YOUTUBE_API_KEY
-        sync: false
+        sync: false # leave empty and set DEMO_MODE=true to run on demo channels
       - key: CORS_ORIGINS
         sync: false # your Vercel URL, e.g. https://channellens.vercel.app
       - key: JWT_SECRET
@@ -23,7 +22,3 @@ services:
         generateValue: true
       - key: COOKIE_SECURE
         value: "true"
-
-databases:
-  - name: channellens-db
-    plan: free

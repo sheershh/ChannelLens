@@ -106,13 +106,22 @@ cd frontend && npm test                 # unit tests
 cd frontend && npm run test:e2e         # starts both servers in demo mode, runs Playwright
 ```
 
-## Deploy
+## Deploy (all free tiers, no card needed)
 
-- **API and database:** Render Blueprint (`render.yaml`) creates the Docker web service and a Postgres
-  database. It asks for `YOUTUBE_API_KEY` and `CORS_ORIGINS` and generates the secrets.
-- **Frontend:** Vercel, with root directory `frontend` and env var `BACKEND_URL` set to the Render URL.
-- **Daily snapshots:** add repository secrets `CHANNELLENS_API_URL` and `CHANNELLENS_CRON_SECRET`.
-  `.github/workflows/daily-snapshot.yml` then runs at 06:00 IST.
+| Piece | Host | Free-tier notes |
+|---|---|---|
+| Database | [Neon](https://neon.com) Postgres | no time limit; writes stop at the storage cap instead of billing |
+| API | [Render](https://render.com) free web service (`render.yaml`) | sleeps after 15 min idle, so the first request takes ~50 s |
+| Frontend | [Vercel](https://vercel.com) Hobby | root directory `frontend`, env `BACKEND_URL` = the Render URL |
+| Daily snapshots | GitHub Actions | free for public repos |
+| YouTube data | YouTube Data API v3 key | no billing account; 10,000 units/day, enforced by the app's quota guard |
+
+1. Create a Neon project and copy its connection string.
+2. On Render, go to New → Blueprint and pick this repo. Set `DATABASE_URL` to the Neon string and add your
+   `YOUTUBE_API_KEY` (or set `DEMO_MODE=true`). `CORS_ORIGINS` can be filled in after step 3.
+3. On Vercel, import the repo with root directory `frontend` and set `BACKEND_URL` to the Render URL.
+4. Add repository secrets `CHANNELLENS_API_URL` (the Render URL) and `CHANNELLENS_CRON_SECRET` (from Render's
+   environment tab). `.github/workflows/daily-snapshot.yml` then runs at 06:00 IST.
 
 ## Project layout
 
