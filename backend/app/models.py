@@ -61,3 +61,10 @@ class QuotaUsage(Base):
     __tablename__ = "quota_usage"
     day: Mapped[date] = mapped_column(Date, primary_key=True)  # Pacific-time day, as YouTube counts it
     units: Mapped[int] = mapped_column(Integer, default=0)
+
+
+class AppSetting(Base):
+    """Small key/value store: generated secrets and job bookkeeping, so the deploy needs no pasted secrets."""
+    __tablename__ = "app_settings"
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    value: Mapped[str] = mapped_column(Text)

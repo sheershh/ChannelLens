@@ -69,3 +69,24 @@ def test_history_grows_over_days(client, db):
     db.commit()
     g = client.get(f"/api/channels/{ALPHA}").json()["growth"]
     assert g["days_tracked"] == 2 and g["d30"]["subscribers"] == 100_000
+
+
+def test_snapshot_job_accepts_vercel_cron_bearer_and_get(client):
+    assert client.get("/api/jobs/snapshot", headers={"Authorization": "Bearer cron-secret"}).status_code == 200
+    assert client.get("/api/jobs/snapshot", headers={"Authorization": "Bearer nope"}).status_code == 403
+
+
+def test_snapshot_job_without_secret_runs_once_a_day(client, yt):
+    from app.config import get_settings
+    settings = get_settings()
+    saved, settings.cron_secret = settings.cron_secret, ""
+    try:
+        h = signup(client)
+        client.post("/api/watchlist", json={"channel_id": ALPHA}, headers=h)
+        first = client.get("/api/jobs/snapshot").json()
+        assert first["channels"] == 1
+        calls = len(yt.calls)
+        assert client.get("/api/jobs/snapshot").json() == {"skipped": True, "reason": "Already ran today."}
+        assert len(yt.calls) == calls          # the repeat call cost no quota
+    finally:
+        settings.cron_secret = saved

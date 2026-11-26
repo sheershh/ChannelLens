@@ -41,3 +41,21 @@ def test_password_is_hashed(client, db):
     from app.models import User
     signup(client)
     assert db.query(User).one().password_hash.startswith("$2")
+
+
+def test_jwt_secret_is_generated_once_and_stored_when_env_is_empty(client, db):
+    from app import security
+    from app.config import get_settings
+    from app.models import AppSetting
+    settings = get_settings()
+    saved_env, saved_cache = settings.jwt_secret, security._cached_secret
+    settings.jwt_secret, security._cached_secret = "", None
+    try:
+        first = security.jwt_secret()
+        security._cached_secret = None              # a new serverless instance
+        assert security.jwt_secret() == first      # reads the same stored secret
+        assert len(first) >= 48 and db.get(AppSetting, "jwt_secret").value == first
+        token = security.create_token(7)
+        assert security.decode_token(token) == 7
+    finally:
+        settings.jwt_secret, security._cached_secret = saved_env, saved_cache

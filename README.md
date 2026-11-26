@@ -19,7 +19,7 @@ PostgreSQL · Docker · GitHub Actions · pytest · Vitest · Playwright
   plotted as percent change so a 50K channel and a 5M channel share one chart.
 - **Accounts and watchlists.** A daily job snapshots every watched channel, which builds the
   growth history that the YouTube API itself doesn't provide.
-- **Demo mode** (`DEMO_MODE=true`) serves three fictional channels with 90 days of history, so the
+- **Demo mode** (automatic when no API key is set, or `DEMO_MODE=true`) serves three fictional channels with 90 days of history, so the
   whole app runs with no API key and no network.
 
 ![Compare view](docs/screenshots/compare.png)
@@ -65,14 +65,14 @@ flowchart LR
   N -->|rewrite /api/*| F[FastAPI]
   F --> DB[(PostgreSQL)]
   F -->|cache miss, within quota| Y[YouTube Data API v3]
-  G[GitHub Actions cron, daily] -->|POST /api/jobs/snapshot| F
+  G[Vercel Cron, daily] -->|GET /api/jobs/snapshot| F
 ```
 
 ## Tests
 
 | Suite | Tool | Count |
 |---|---|---|
-| Backend: API, quota and cache accounting, auth, jobs | pytest, on SQLite and PostgreSQL | 57 |
+| Backend: API, quota and cache accounting, auth, jobs | pytest, on SQLite and PostgreSQL | 61 |
 | Frontend: formatting, API client, components | Vitest + Testing Library | 49 |
 | End to end: search → dashboard → sign up → watchlist → compare | Playwright (desktop + mobile) | 9 |
 
@@ -106,22 +106,26 @@ cd frontend && npm test                 # unit tests
 cd frontend && npm run test:e2e         # starts both servers in demo mode, runs Playwright
 ```
 
-## Deploy (all free tiers, no card needed)
+## Deploy (free tiers only, no card)
 
-| Piece | Host | Free-tier notes |
+One Vercel project runs both halves as [Vercel Services](vercel.json): `/api/*` goes to the FastAPI
+service and everything else goes to Next.js, all on one origin.
+
+| Piece | Where | Notes |
 |---|---|---|
-| Database | [Neon](https://neon.com) Postgres | no time limit; writes stop at the storage cap instead of billing |
-| API | [Render](https://render.com) free web service (`render.yaml`) | sleeps after 15 min idle, so the first request takes ~50 s |
-| Frontend | [Vercel](https://vercel.com) Hobby | root directory `frontend`, env `BACKEND_URL` = the Render URL |
-| Daily snapshots | GitHub Actions | free for public repos |
-| YouTube data | YouTube Data API v3 key | no billing account; 10,000 units/day, enforced by the app's quota guard |
+| Web + API | Vercel Hobby | `vercel.json` declares the `web` and `api` services and the routing |
+| Database | Neon Postgres (Vercel integration) | `DATABASE_URL` is injected by the integration |
+| Daily snapshots | Vercel Cron, `GET /api/jobs/snapshot` at 00:30 UTC | |
+| YouTube data | `YOUTUBE_API_KEY` env var | without one, the app runs in demo mode automatically |
 
-1. Create a Neon project and copy its connection string.
-2. On Render, go to New → Blueprint and pick this repo. Set `DATABASE_URL` to the Neon string and add your
-   `YOUTUBE_API_KEY` (or set `DEMO_MODE=true`). `CORS_ORIGINS` can be filled in after step 3.
-3. On Vercel, import the repo with root directory `frontend` and set `BACKEND_URL` to the Render URL.
-4. Add repository secrets `CHANNELLENS_API_URL` (the Render URL) and `CHANNELLENS_CRON_SECRET` (from Render's
-   environment tab). `.github/workflows/daily-snapshot.yml` then runs at 06:00 IST.
+Nothing needs to be pasted in by hand:
+- The JWT signing secret is generated on first use and stored in the database (`app_settings`),
+  unless `JWT_SECRET` is set.
+- Without `CRON_SECRET` the snapshot endpoint is public, but it runs at most once per UTC day, so
+  repeat calls cost no quota. With `CRON_SECRET` set, Vercel Cron's `Authorization: Bearer` header
+  is required.
+- Tables are created on first request, which suits serverless cold starts. On Vercel the engine
+  uses `NullPool` and leaves pooling to Neon.
 
 ## Project layout
 

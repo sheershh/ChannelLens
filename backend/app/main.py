@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from .config import get_settings
-from .db import Base, SessionLocal, engine
+from .db import ensure_ready
 from .deps import get_youtube
 from .routers import auth, channels, jobs, watchlist
 from .youtube import YouTubeClient, YouTubeError
@@ -13,11 +13,7 @@ from .youtube import YouTubeClient, YouTubeError
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    Base.metadata.create_all(engine)
-    if get_settings().demo_mode:
-        from .demo import seed_history
-        with SessionLocal() as db:
-            seed_history(db)
+    ensure_ready()
     yield
 
 
@@ -34,7 +30,7 @@ async def youtube_error(_: Request, exc: YouTubeError):
 
 @app.get("/api/health", tags=["meta"])
 def health(yt: YouTubeClient = Depends(get_youtube)):
-    return {"status": "ok", "demo": get_settings().demo_mode,
+    return {"status": "ok", "demo": get_settings().demo,
             "quota_used_today": yt.units_used_today(), "quota_limit": yt.daily_quota}
 
 

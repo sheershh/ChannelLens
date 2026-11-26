@@ -28,3 +28,11 @@ def test_demo_end_to_end():
             assert body["growth"]["d30"]["subscribers"] > 0
     finally:
         app.dependency_overrides.clear()
+
+
+def test_demo_mode_defaults_to_on_only_without_an_api_key():
+    from app.config import Settings
+    assert Settings(youtube_api_key="", demo_mode=None).demo is True
+    assert Settings(youtube_api_key="real-key", demo_mode=None).demo is False
+    assert Settings(youtube_api_key="real-key", demo_mode=True).demo is True
+    assert Settings(youtube_api_key="", demo_mode=False).demo is False

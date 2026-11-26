@@ -20,12 +20,12 @@ def _shared_http(demo: bool) -> httpx.Client:
 
 
 def get_http(settings: Settings = Depends(get_settings)) -> httpx.Client:
-    return _shared_http(settings.demo_mode)
+    return _shared_http(settings.demo)
 
 
 def get_youtube(db: Session = Depends(get_db), http: httpx.Client = Depends(get_http),
                 settings: Settings = Depends(get_settings)) -> YouTubeClient:
-    key = settings.youtube_api_key or ("demo-key" if settings.demo_mode else "")
+    key = settings.youtube_api_key or ("demo-key" if settings.demo else "")
     return YouTubeClient(db, key, http,
                          cache_ttl=settings.cache_ttl_seconds, daily_quota=settings.daily_quota)
 

@@ -1,8 +1,9 @@
 import type { NextConfig } from "next";
 
-// The browser only ever talks to this Next.js app. /api/* is proxied to FastAPI, so the
-// session cookie is first-party and no CORS is needed in production.
-const BACKEND_URL = process.env.BACKEND_URL ?? "http://localhost:8000";
+// The browser only talks to one origin, so the session cookie is first-party and no CORS is needed.
+// On Vercel, /api/* is routed to the FastAPI service before it reaches Next.js (see ../vercel.json).
+// Locally (and in the e2e tests), Next.js proxies /api/* to BACKEND_URL instead.
+const BACKEND_URL = process.env.BACKEND_URL ?? (process.env.VERCEL ? null : "http://localhost:8000");
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
@@ -16,7 +17,7 @@ const nextConfig: NextConfig = {
     },
   },
   async rewrites() {
-    return [{ source: "/api/:path*", destination: `${BACKEND_URL}/api/:path*` }];
+    return BACKEND_URL ? [{ source: "/api/:path*", destination: `${BACKEND_URL}/api/:path*` }] : [];
   },
 };
 
